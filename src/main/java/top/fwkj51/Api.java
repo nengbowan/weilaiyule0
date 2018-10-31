@@ -29,6 +29,9 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
 
+/**
+ * 自动投注 www.fwkj51.top 的相关http接口
+ */
 public class Api {
 
     private String username;
@@ -37,15 +40,25 @@ public class Api {
 
     private CookieStore cookieStore = new BasicCookieStore();
 
+    //所有的网络请求都用同一个httpClient 实现cookie自动管理
     private CloseableHttpClient httpClient = HttpClients.custom().setDefaultCookieStore(cookieStore).build();
 
-    public Api(String username, String password){
+    private int [] bets;
+
+    private LongHuBetMethod[] longHuBetMethods;
+
+    public Api(String username, String password , int [] bets , LongHuBetMethod[] longHuBetMethods){
         this.username = username;
 
         this.password = password;
+
+        this.bets = bets;
+
+        this.longHuBetMethods = longHuBetMethods;
     }
 
     public String getVerfiyPath(){
+        String userHome =  System.getProperty("user.dir");
         String url = "http://www.fwkj51.top/api/utils/loginSecurityCode?"+System.currentTimeMillis();
 
         Map<String,String> headerParams = new HashMap();
@@ -61,7 +74,7 @@ public class Api {
             CloseableHttpResponse response = this.httpClient.execute(httpGet);
             HttpEntity entity = response.getEntity();
             InputStream inputStream = entity.getContent();
-            File targetFile = new File("/tmp/" + System.currentTimeMillis() + ".png");
+            File targetFile = new File(userHome+"/" + System.currentTimeMillis() + ".png");
             FileUtils.copyToFile(inputStream , targetFile);
             return targetFile.getAbsolutePath();
         }catch (Exception e){
@@ -99,23 +112,28 @@ public class Api {
 
 
         //下注
-        int[] bets = {1,3,7,15,31,63,127,255,511,1023,2047,5095};
+        if(this.bets == null || this.bets.length == 0){
+            this.bets = new int[]{1,3,7,15,31,63,127,255,511,1023,2047,5095};
+        }
 
-        LongHuBetMethod [] longHuBetMethods = {
-                LongHuBetMethod.LHWQ,
-                LongHuBetMethod.LHWB,
-                LongHuBetMethod.LHWS,
-                LongHuBetMethod.LHWG,
-                LongHuBetMethod.LHQB,
-                LongHuBetMethod.LHQS,
-                LongHuBetMethod.LHQG,
-                LongHuBetMethod.LHBS,
-                LongHuBetMethod.LHBG,
-                LongHuBetMethod.LHSG
+        if(this.longHuBetMethods == null || this.longHuBetMethods.length == 0){
+            this.longHuBetMethods = new LongHuBetMethod[]{
+                    LongHuBetMethod.LHWQ,
+                    LongHuBetMethod.LHWB,
+                    LongHuBetMethod.LHWS,
+                    LongHuBetMethod.LHWG,
+                    LongHuBetMethod.LHQB,
+                    LongHuBetMethod.LHQS,
+                    LongHuBetMethod.LHQG,
+                    LongHuBetMethod.LHBS,
+                    LongHuBetMethod.LHBG,
+                    LongHuBetMethod.LHSG
 
-        };
+            };
+        }
+
         System.out.println("余额" + pollingLottery().getData().getLotteryBalance());
-        doBet(bets , longHuBetMethods);
+        doBet(this.bets , this.longHuBetMethods);
     }
 
     private void doLogin(String verifyCode){
@@ -293,7 +311,5 @@ public class Api {
         return null;
     }
 
-    public static void main(String[] args) {
-        new Api("Q1Q2Q3","666888").login();
-    }
+
 }
