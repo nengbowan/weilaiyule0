@@ -22,6 +22,7 @@ import org.dom4j.io.SAXReader;
 import top.fwkj51.dto.BetDto;
 import top.fwkj51.dto.ResultDTO;
 import top.fwkj51.enums.BetMoneyType;
+import top.fwkj51.enums.BetType;
 import top.fwkj51.enums.LongHuBetMethod;
 import top.fwkj51.util.RuoKuai;
 
@@ -45,9 +46,25 @@ public class Api {
 
     private int [] bets;
 
-    private LongHuBetMethod[] longHuBetMethods;
+    private List<LongHuBetMethod> longHuBetMethods;
 
-    public Api(String username, String password , int [] bets , LongHuBetMethod[] longHuBetMethods){
+    private BetType betType;
+
+    private BetMoneyType betMoneyType;
+
+    public Api(String username, String password , int [] bets , List<LongHuBetMethod> longHuBetMethods ,BetType betType , BetMoneyType betMoneyType ){
+        //重定向输出流到文件中
+        String userHome = System.getProperty("user.home");
+        Date now = new Date();
+        File logFile = new File(userHome + "/" + now.getYear() + "-" + now.getMonth() + "-"+ now.getDay() + "-weilai.log");
+        try {
+            FileOutputStream fos = new FileOutputStream(logFile);
+            PrintStream ps = new PrintStream(fos ,true);
+            System.setOut(ps);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
         this.username = username;
 
         this.password = password;
@@ -55,6 +72,10 @@ public class Api {
         this.bets = bets;
 
         this.longHuBetMethods = longHuBetMethods;
+
+        this.betType = betType;
+
+        this.betMoneyType = betMoneyType;
     }
 
     public String getVerfiyPath(){
@@ -97,43 +118,8 @@ public class Api {
 
         doLogin(verifyCode);
 
-
-//        ResultDTO resultDTO = pollingLottery();
-//        if(resultDTO == null){
-//            System.out.println("获取开奖时间失败");
-//            System.out.println("等待三分钟再继续下注");
-//            try {
-//                Thread.sleep(10000);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        }
-
-
-
-        //下注
-        if(this.bets == null || this.bets.length == 0){
-            this.bets = new int[]{1,3,7,15,31,63,127,255,511,1023,2047,5095};
-        }
-
-        if(this.longHuBetMethods == null || this.longHuBetMethods.length == 0){
-            this.longHuBetMethods = new LongHuBetMethod[]{
-                    LongHuBetMethod.LHWQ,
-                    LongHuBetMethod.LHWB,
-                    LongHuBetMethod.LHWS,
-                    LongHuBetMethod.LHWG,
-                    LongHuBetMethod.LHQB,
-                    LongHuBetMethod.LHQS,
-                    LongHuBetMethod.LHQG,
-                    LongHuBetMethod.LHBS,
-                    LongHuBetMethod.LHBG,
-                    LongHuBetMethod.LHSG
-
-            };
-        }
-
         System.out.println("余额" + pollingLottery().getData().getLotteryBalance());
-        doBet(this.bets , this.longHuBetMethods);
+        doBet(this.bets , this.longHuBetMethods , this.betType , this.betMoneyType);
     }
 
     private void doLogin(String verifyCode){
@@ -162,11 +148,11 @@ public class Api {
         }
     }
     //下注策略核心
-    private void doBet(int [] bets , LongHuBetMethod[] methods) {
+    private void doBet(int [] bets , List<LongHuBetMethod> methods , BetType betType ,BetMoneyType betMoneyType) {
 
         for(int count = 0 ;count<bets.length;count++){
             //下注万千 1厘
-            bet(methods[count] , BetMoneyType.YUAN ,bets[count]);
+            bet(methods.get(count) , betMoneyType ,bets[count] , betType);
             ResultDTO before = pollingLottery();
             //余额
             float remainMoney = before.getData().getLotteryBalance();
@@ -247,7 +233,7 @@ public class Api {
 
 
     //下注
-    private void bet(LongHuBetMethod method, BetMoneyType model , int money) {
+    private void bet(LongHuBetMethod method, BetMoneyType model , int money , BetType content) {
         String url = "http://www.fwkj51.top/api/lottery/addOrder";
         HttpPost httpPost = new HttpPost(url);
         httpPost.addHeader("Content-Type","application/x-www-form-urlencoded");
@@ -259,7 +245,7 @@ public class Api {
                                 .lottery("txffc")
                 .issue("")
                 .method(method.getCode())
-                .content("龙")
+                .content(content.getName())
                 .model(model.getCode())
                 .multiple(money)
                 .code(1980)
@@ -272,7 +258,7 @@ public class Api {
             CloseableHttpResponse response1 = httpClient.execute(httpPost);
             String respStrJson = EntityUtils.toString(response1.getEntity() , Charset.defaultCharset());
             System.out.println(respStrJson);
-            System.out.println("下注"+method.getName() + money+model.getName());
+            System.out.println("下注"+method.getName() + " "+this.betType.getName()+ money+model.getName());
             System.out.println("余额"+pollingLottery().getData().getLotteryBalance());
         } catch (IOException e) {
             e.printStackTrace();
