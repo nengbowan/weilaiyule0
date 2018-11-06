@@ -30,7 +30,7 @@
                     <archive>
                         <manifest>
                             <!-- 此处指定main方法入口的class -->
-                            <mainClass>top.fwkj51.BetController</mainClass>
+                            <mainClass>top.fwkj51.gui.MainGUI</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
