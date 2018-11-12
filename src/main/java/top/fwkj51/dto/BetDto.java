@@ -21,7 +21,7 @@ public class BetDto {
 
     private Integer multiple;
 
-    private Integer code;
+    private String code;
 
     private boolean compress;
 }

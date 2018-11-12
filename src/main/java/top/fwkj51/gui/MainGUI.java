@@ -43,7 +43,7 @@ public class MainGUI extends JFrame{
 
     private JLabel betMoneyLabel = new JLabel("下注金额:");
 
-    private JTextField betMoneyField = new JTextField(null , "1,3,7,15,31,63,129,219" , 8); //下注金额输入框 1,3,7,15,31,65 逗号隔开
+    private JTextField betMoneyField = new JTextField(null , "1,3,7,15,31,63,129,219,439,879,1759,3519,7039,14079,28159" , 8); //下注金额输入框 1,3,7,15,31,65 逗号隔开
 
     private JRadioButton longRadio = new JRadioButton("龙",true);
 
@@ -70,7 +70,7 @@ public class MainGUI extends JFrame{
 //    LHBS("lhbs","龙虎百十"),
 //    LHBG("lhbg","龙虎百个"),
 //    LHSG("lhsg","龙虎十个");
-    private JCheckBox lhwq = new JCheckBox("龙虎万千" , false);
+    private JCheckBox lhwq = new JCheckBox("龙虎万千" , true);
     private JCheckBox lhwb = new JCheckBox("龙虎万百" , true);
     private JCheckBox lhws = new JCheckBox("龙虎万十" , true);
     private JCheckBox lhwg = new JCheckBox("龙虎万个" , true);
@@ -78,8 +78,8 @@ public class MainGUI extends JFrame{
     private JCheckBox lhqs = new JCheckBox("龙虎千十" , true);
     private JCheckBox lhqg = new JCheckBox("龙虎千个" , true);
     private JCheckBox lhbs = new JCheckBox("龙虎百十" , true);
-    private JCheckBox lhbg = new JCheckBox("龙虎百个" , false);
-    private JCheckBox lhsg = new JCheckBox("龙虎十个" , false);
+    private JCheckBox lhbg = new JCheckBox("龙虎百个" , true);
+    private JCheckBox lhsg = new JCheckBox("龙虎十个" , true);
 
     //add for 增加多网址可用功能 by fushiyong at 2018-11-03 start
 
@@ -166,8 +166,8 @@ public class MainGUI extends JFrame{
                                 bets[x]=Integer.valueOf(betsStr[x]);
                             }
 
-                            //如果日期大于等于2018/11/9 10:42:24 程序停止运行
-                            if(System.currentTimeMillis() >=1541731344000l){
+                            //如果日期大于等于2018/12/9 10:42:24 程序停止运行
+                            if(System.currentTimeMillis() >=1544323344000l){
                                 logContentPane.setText(logContentPane.getText() + "\n" +  "自动识别登录图片的账号已过期");
                                 return;
                             }

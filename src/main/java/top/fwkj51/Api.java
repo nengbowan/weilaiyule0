@@ -1,6 +1,7 @@
 package top.fwkj51;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -20,6 +21,8 @@ import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
 import top.fwkj51.dto.BetDto;
+import top.fwkj51.dto.CommonDto;
+import top.fwkj51.dto.InitPageDto;
 import top.fwkj51.dto.ResultDTO;
 import top.fwkj51.enums.BetMoneyType;
 import top.fwkj51.enums.BetType;
@@ -57,6 +60,8 @@ public class Api {
     private String baseUrl ;
 
     private JTextPane textPane;
+
+    private String code; //奖金调节的按钮
 
     //textpane 是不必要传的参数  耦合性高了 TODO 商量一个哦好办法
     public Api(JTextPane textPane , String baseUrl , String username, String password , int [] bets , List<LongHuBetMethod> longHuBetMethods , BetType betType , BetMoneyType betMoneyType ){
@@ -130,6 +135,8 @@ public class Api {
 
         System.out.println("余额" + pollingLottery().getData().getLotteryBalance());
 
+        String initResp = getInitPage();
+        parseInitResp2Code(initResp);
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -158,6 +165,27 @@ public class Api {
 
 
         doBet(this.bets , alignedMethods , this.betType , this.betMoneyType);
+    }
+
+    private void parseInitResp2Code(String initResp) {
+        CommonDto<InitPageDto> commonDto = JSONObject.parseObject(initResp ,new TypeReference<CommonDto<InitPageDto>>(){});
+        this.code = commonDto.getData().getLottery().getCode();
+    }
+
+    private String getInitPage() {
+        String initUrl = baseUrl + "/api/ajaxWebPage/initPage";
+        HttpPost httpPost = new HttpPost(initUrl);
+        httpPost.addHeader(new BasicHeader("Referer" , "http://www.fwkj51.top/login.html"));
+        httpPost.addHeader(new BasicHeader("User-Agent" , "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:63.0) Gecko/20100101 Firefox/63.0"));
+        try {
+            CloseableHttpResponse response = this.httpClient.execute(httpPost);
+            String respStr = EntityUtils.toString(response.getEntity() , Charset.defaultCharset());
+            System.out.println(respStr.toString());
+            return respStr;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     private void doLogin(String verifyCode){
@@ -191,7 +219,9 @@ public class Api {
         //作为输赢的标记
 //        int beforeCount = 0 ;
         //modify for 修复赢了还继续倍投的BUG FIX by fushiyong at 2018-11-03 end
-        for(int methodIndex = 0 ,index = 0 , betIndex = 0;methodIndex<bets.length;methodIndex++ , betIndex++ , index++){
+        // 失败次数过多 退出
+        int failureCount = 0;
+        for(int methodIndex = 0 ,index = 0 , betIndex = 0;betIndex<bets.length;methodIndex++ , betIndex++ , index++){
 
             //下注万千 1厘
 
@@ -205,8 +235,23 @@ public class Api {
 //            }else{
 //                methodCount = methodIndex;
 //            }
-            int shouldMethodIndex = index > methodIndex ? index % methodIndex -1  : methodIndex;
-            bet(methods.get(shouldMethodIndex ) , betMoneyType ,bets[  betIndex  ] , betType);
+            int shouldMethodIndex = methodIndex >= methods.size() ? index % methods.size()  : methodIndex;
+            String betResp = bet(methods.get(shouldMethodIndex ) , betMoneyType ,bets[  betIndex  ] , betType);
+            CommonDto betDto = parseBetResp(betResp);
+
+            if(failureCount == 5){
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        textPane.setText(textPane.getText() + "\n" + "投注失败次数过多，退出程序");
+                    }
+                }).start();
+                System.out.println("投注失败次数过多，退出程序" );
+                return;
+            }
+            if(betDto.getMessage().equals("请求失败")){
+                failureCount++;
+            }
             //modify for 修复下注金额个数多余下注龙虎万千等method的个数的BUG FIX by fushiyong at 2018-11-03 end
 
             ResultDTO before = pollingLottery();
@@ -292,7 +337,12 @@ public class Api {
             }
         }
 
-
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                textPane.setText(textPane.getText() + "\n程序停止运行。。。");
+            }
+        }).start();
 
 
         //记录下当前下注的记录数 下注数 金钱数
@@ -312,6 +362,10 @@ public class Api {
 
 
 
+    }
+
+    private CommonDto parseBetResp(String betResp) {
+        return JSONObject.parseObject(betResp ,CommonDto.class );
     }
 
     private void waitFor3Seconds() {
@@ -349,7 +403,7 @@ public class Api {
 
 
     //下注
-    private void bet(LongHuBetMethod method, BetMoneyType model , int money , BetType content) {
+    private String bet(LongHuBetMethod method, BetMoneyType model , int money , BetType content) {
         String url = baseUrl + "/api/lottery/addOrder";
         HttpPost httpPost = new HttpPost(url);
         httpPost.addHeader("Content-Type","application/x-www-form-urlencoded");
@@ -364,7 +418,7 @@ public class Api {
                 .content(content.getName())
                 .model(model.getCode())
                 .multiple(money)
-                .code(1980)
+                .code(code)
                 .compress(false).build();
         List<BetDto> betDtos = new ArrayList<BetDto>();
         betDtos.add(betDto);
@@ -385,9 +439,11 @@ public class Api {
 
                 }
             });
+            return respStrJson;
             } catch (IOException e) {
             e.printStackTrace();
         }
+        return null;
 
     }
 

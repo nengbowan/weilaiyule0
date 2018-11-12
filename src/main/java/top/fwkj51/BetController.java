@@ -20,8 +20,8 @@ public class BetController {
         String password = "666888";
 
 //        new Api(username , password , bets , longHuBetMethods , BetType.HU).login();
-        System.out.println(System.currentTimeMillis());
-        System.out.println(LocalDate.now().getDayOfMonth());
+//        System.out.println(System.currentTimeMillis());
+//        System.out.println(LocalDate.now().getDayOfMonth());
 
     }
 }
